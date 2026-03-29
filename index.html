@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPS 剩余价值计算器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">VPS 剩余价值计算器</h1>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">购买/续费价格 (CNY/USD)</label>
+                <input type="number" id="price" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" placeholder="例如: 100">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">上次续费/购买日期</label>
+                <input type="date" id="startDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">下次到期日期</label>
+                <input type="date" id="endDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">交易/计算日期 (默认今天)</label>
+                <input type="date" id="todayDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border">
+            </div>
+
+            <button onclick="calculate()" class="w-full bg-blue-600 text-white font-bold py-2 rounded-md hover:bg-blue-700 transition">立即计算</button>
+        </div>
+
+        <div id="result" class="mt-6 p-4 bg-blue-50 rounded-md hidden">
+            <p class="text-gray-700">总时长: <span id="totalDays" class="font-bold text-blue-600">0</span> 天</p>
+            <p class="text-gray-700">剩余时长: <span id="remainDays" class="font-bold text-blue-600">0</span> 天</p>
+            <hr class="my-2 border-blue-200">
+            <p class="text-xl font-bold text-gray-800">剩余价值: <span id="leftValue" class="text-red-500">0.00</span></p>
+        </div>
+    </div>
+
+    <script>
+        // 初始化今天日期
+        document.getElementById('todayDate').valueAsDate = new Date();
+
+        function calculate() {
+            const price = parseFloat(document.getElementById('price').value);
+            const start = new Date(document.getElementById('startDate').value);
+            const end = new Date(document.getElementById('endDate').value);
+            const today = new Date(document.getElementById('todayDate').value);
+
+            if (!price || isNaN(start) || isNaN(end)) {
+                alert("请完整填写信息");
+                return;
+            }
+
+            const totalMs = end - start;
+            const remainMs = end - today;
+
+            if (totalMs <= 0 || remainMs <= 0) {
+                alert("日期设置有误，请检查");
+                return;
+            }
+
+            const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
+            const remainDays = Math.ceil(remainMs / (1000 * 60 * 60 * 24));
+            const leftValue = (price / totalDays) * remainDays;
+
+            document.getElementById('totalDays').innerText = totalDays;
+            document.getElementById('remainDays').innerText = remainDays;
+            document.getElementById('leftValue').innerText = leftValue.toFixed(2);
+            document.getElementById('result').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

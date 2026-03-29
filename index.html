@@ -91,7 +91,6 @@
             padding: 12px;
             font-size: 16px;
             outline: none;
-            /* 增加更丝滑的过渡曲线 */
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
@@ -312,12 +311,12 @@
 
         <div class="form-group">
             <label>下次到期日期</label>
-            <input type="date" id="endDate">
+            <input type="date" id="endDate" max="9999-12-31">
         </div>
 
         <div class="form-group">
-            <label>交易/计算日期 (默认今天)</label>
-            <input type="date" id="todayDate">
+            <label>交易/计算日期 (默认东八区今日)</label>
+            <input type="date" id="todayDate" max="9999-12-31">
         </div>
 
         <button onclick="calculate()">执行数据流演算</button>
@@ -353,19 +352,50 @@
     </div>
 
     <script>
-        document.getElementById('todayDate').valueAsDate = new Date();
-
         // ------------------ 动效触发脚本 ------------------
-        // 为所有输入框和下拉菜单添加输入时的 Glitch 震动特效
         document.querySelectorAll('input, select').forEach(el => {
             el.addEventListener('input', function() {
-                // 移除 class 并强制触发重绘，这样每次输入都能重新播放动画
                 this.classList.remove('typing-anim');
                 void this.offsetWidth; 
                 this.classList.add('typing-anim');
             });
         });
 
+        // ------------------ 东八区时间实时同步模块 ------------------
+        const todayInput = document.getElementById('todayDate');
+        let isTodayModified = false;
+
+        // 记录用户是否手动修改了交易日期
+        todayInput.addEventListener('change', () => {
+            isTodayModified = true;
+        });
+
+        function syncEast8Date() {
+            // 如果用户手动改了日期，就不自动覆盖
+            if (isTodayModified) return;
+
+            // 获取东八区 (Asia/Shanghai) 的当前时间字符串
+            const d = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Shanghai"}));
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            // 只有当时间跨天发生变化时才修改 DOM
+            if (todayInput.value !== dateStr) {
+                todayInput.value = dateStr;
+            }
+        }
+
+        // 初始化时执行一次
+        syncEast8Date();
+        // 当用户从其他应用或标签页切回该页面时，检查并刷新日期
+        window.addEventListener('focus', syncEast8Date);
+        // 定时器：每 5 分钟检查一次，应对网页一直保持前台显示的情况
+        setInterval(syncEast8Date, 300000);
+
+
+        // ------------------ 汇率与计算模块 ------------------
         let exchangeRates = {};
         const targetCurrencies = ['usd', 'eur', 'gbp', 'jpy', 'hkd', 'twd', 'sgd', 'cad', 'aud', 'krw'];
 

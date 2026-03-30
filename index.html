@@ -262,6 +262,25 @@
             color: var(--neon-pink);
             text-shadow: 0 0 5px var(--neon-pink);
         }
+        
+        .divider {
+            height: 1px;
+            background: rgba(0, 255, 255, 0.2);
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .divider::after {
+            content: "FINAL COST";
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-color);
+            padding: 0 10px;
+            font-size: 12px;
+            color: var(--neon-cyan);
+        }
 
         #apiStatus {
             text-align: center;
@@ -309,13 +328,24 @@
             </div>
         </div>
 
+        <div class="input-group">
+            <div class="form-group" style="width: 50%;">
+                <label>Push 费用 (选填)</label>
+                <input type="number" id="pushFee" placeholder="默认 0" step="0.01">
+            </div>
+            <div class="form-group" style="width: 50%;">
+                <label>溢价金额 (支持负数)</label>
+                <input type="number" id="premiumAmount" placeholder="默认 0" step="0.01">
+            </div>
+        </div>
+
         <div class="form-group">
             <label>下次到期日期</label>
             <input type="date" id="endDate" max="9999-12-31">
         </div>
 
         <div class="form-group">
-            <label>交易/计算日期 (默认东八区今日)</label>
+            <label>交易/计算日期 (默认今日)</label>
             <input type="date" id="todayDate" max="9999-12-31">
         </div>
 
@@ -338,15 +368,26 @@
                 <span>剩余时长:</span>
                 <span class="result-value"><span id="remainDays">0</span> 天</span>
             </div>
+            <div class="result-item">
+                <span>溢价率 (相对剩余价值):</span>
+                <span class="result-value" id="premiumRateDisplay"><span id="premiumRate">0.00</span>%</span>
+            </div>
             
+            <div class="value-display" style="border-color: rgba(255, 255, 255, 0.1); background: transparent;">
+                <span>纯剩余价值 (不含溢价/Push):</span>
+                <span id="originalValue" style="font-size: 16px; color: #fff; text-shadow: none;">USD 0.00</span>
+            </div>
+
+            <div class="divider"></div>
+
             <div class="value-display">
-                <span>原币剩余价值:</span>
-                <span id="originalValue">USD 0.00</span>
+                <span>买家最终花费 (<span id="finalCurrency">USD</span>):</span>
+                <span id="finalTotalOriginal">0.00</span>
             </div>
 
             <div class="value-display cny-display">
-                <span>折合人民币:</span>
-                <span id="cnyValue">CNY 0.00</span>
+                <span>买家最终花费 (折合):</span>
+                <span id="finalTotalCNY">CNY 0.00</span>
             </div>
         </div>
     </div>
@@ -439,6 +480,10 @@
             const cycleMonths = parseInt(document.getElementById('cycle').value);
             const end = new Date(document.getElementById('endDate').value);
             const today = new Date(document.getElementById('todayDate').value);
+            
+            // 获取 push 费和溢价，若未输入则默认为 0
+            const pushFee = parseFloat(document.getElementById('pushFee').value) || 0;
+            const premiumAmount = parseFloat(document.getElementById('premiumAmount').value) || 0;
 
             if (!price || isNaN(end)) {
                 alert("终端警告：输入参数缺失");
@@ -465,20 +510,41 @@
             const totalDays = Math.ceil(totalMs / (1000 * 60 * 60 * 24));
             const remainDays = Math.ceil(remainMs / (1000 * 60 * 60 * 24));
             
+            // 计算纯剩余价值
             const leftValue = (price / totalDays) * remainDays;
+            
+            // 计算溢价率 (相对剩余价值)
+            const premiumRate = leftValue > 0 ? (premiumAmount / leftValue) * 100 : 0;
+            
+            // 计算买家总花费 (剩余价值 + Push费 + 溢价金额)
+            const totalCost = leftValue + pushFee + premiumAmount;
 
-            let leftValueCNY = leftValue;
+            let totalCostCNY = totalCost;
             const currencyLower = currency.toLowerCase();
             
             if (currencyLower !== 'cny' && exchangeRates[currencyLower]) {
-                leftValueCNY = leftValue / exchangeRates[currencyLower];
+                totalCostCNY = totalCost / exchangeRates[currencyLower];
             }
 
+            // 更新 DOM
             document.getElementById('totalDays').innerText = totalDays;
             document.getElementById('remainDays').innerText = remainDays;
             
+            const premiumRateEl = document.getElementById('premiumRateDisplay');
+            premiumRateEl.innerHTML = `<span id="premiumRate">${premiumRate.toFixed(2)}</span>%`;
+            if (premiumRate < 0) {
+                premiumRateEl.style.color = "var(--neon-cyan)"; // 折价显示青色
+            } else if (premiumRate > 0) {
+                premiumRateEl.style.color = "var(--neon-pink)"; // 溢价显示粉色
+            } else {
+                premiumRateEl.style.color = "#fff"; // 0% 显示白色
+            }
+            
             document.getElementById('originalValue').innerText = `${currency} ${leftValue.toFixed(2)}`;
-            document.getElementById('cnyValue').innerText = `CNY ${leftValueCNY.toFixed(2)}`;
+            
+            document.getElementById('finalCurrency').innerText = currency;
+            document.getElementById('finalTotalOriginal').innerText = `${currency} ${totalCost.toFixed(2)}`;
+            document.getElementById('finalTotalCNY').innerText = `CNY ${totalCostCNY.toFixed(2)}`;
             
             const resultBox = document.getElementById('resultBox');
             resultBox.style.display = 'block';

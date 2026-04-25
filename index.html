@@ -334,7 +334,7 @@
                 <input type="number" id="pushFee" placeholder="默认 0" step="0.01">
             </div>
             <div class="form-group" style="width: 50%;">
-                <label>溢价金额 (支持负数)</label>
+                <label>溢价金额 (CNY, 支持负数)</label>
                 <input type="number" id="premiumAmount" placeholder="默认 0" step="0.01">
             </div>
         </div>
@@ -484,6 +484,10 @@
             // 获取 push 费和溢价，若未输入则默认为 0
             const pushFee = parseFloat(document.getElementById('pushFee').value) || 0;
             const premiumAmount = parseFloat(document.getElementById('premiumAmount').value) || 0;
+            const currencyLower = currency.toLowerCase();
+            const premiumAmountInCurrency = currencyLower !== 'cny' && exchangeRates[currencyLower]
+                ? premiumAmount * exchangeRates[currencyLower]
+                : premiumAmount;
 
             if (!price || isNaN(end)) {
                 alert("终端警告：输入参数缺失");
@@ -514,14 +518,13 @@
             const leftValue = (price / totalDays) * remainDays;
             
             // 计算溢价率 (相对剩余价值)
-            const premiumRate = leftValue > 0 ? (premiumAmount / leftValue) * 100 : 0;
-            
+            const premiumRate = leftValue > 0 ? (premiumAmountInCurrency / leftValue) * 100 : 0;
+
             // 计算买家总花费 (剩余价值 + Push费 + 溢价金额)
-            const totalCost = leftValue + pushFee + premiumAmount;
+            const totalCost = leftValue + pushFee + premiumAmountInCurrency;
 
             let totalCostCNY = totalCost;
-            const currencyLower = currency.toLowerCase();
-            
+
             if (currencyLower !== 'cny' && exchangeRates[currencyLower]) {
                 totalCostCNY = totalCost / exchangeRates[currencyLower];
             }
